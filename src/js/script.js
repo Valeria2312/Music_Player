@@ -162,9 +162,21 @@ const changeAudioList = ({target}) => {
         setCurrentItem(id)
     } return
 }
+const setProgress = (e) => {
+    const bar = e.currentTarget
+    const width = bar.clientWidth;
+    const clickX = e.offsetX;
+    const duration = currentAudio.audio.duration;
+    currentAudio.audio.currentTime = (clickX / width) * duration;
+}
+
+
 function audioUpdateProgress(currentAudio) {
         const progress = document.querySelector(".progress-current");
         const timeline = document.querySelector(".timeline-start");
+        const controlsProgress = document.querySelector(".controls-progress");
+        console.log(controlsProgress)
+        controlsProgress.addEventListener("click", setProgress)
         currentAudio.audio.addEventListener("timeupdate", ({ target }) => {
             const { currentTime } = target;
             const width = (currentTime * 100) / currentAudio.duration;
@@ -185,3 +197,4 @@ const changeVolume = ({target}) => {
 
 audiolList.addEventListener("click", changeAudioList)
 controlsVolume.addEventListener("change", changeVolume)
+
