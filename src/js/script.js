@@ -8,7 +8,8 @@ let audios = [],
     currentAudio = null,
     buttonPlay = null,
     playing = false,
-    volume = 0.5;
+    volume = 0.5,
+    wavesurfer;
 renderAudio()
 
 function renderAudio() {
@@ -22,12 +23,14 @@ function renderAudio() {
     })
 }
 const handleAudioPlay = () =>  {
+    wavesurfer.playPause();
     console.log("play")
     const { audio } = currentAudio;
-    !playing ? audio.play() : audio.pause();
+    // !playing ? (audio.play() && wavesurfer.play()) : (audio.pause() && wavesurfer.pause())
+    // !playing ? wavesurfer.play() : wavesurfer.pause();
     playing = !playing;
     console.log(playing)
-    buttonPlay.classList.toggle("playing", playing);
+    buttonPlay.classList.toggle("playing", !playing);
 }
 const pauseCurrentAudio = () => {
 if(!currentAudio) return;
@@ -54,26 +57,23 @@ const handleAudioPrev = () => {
     if (!itemId) return;
     setCurrentItem(itemId);
 }
-
 function handlePlay() {
     const play = document.querySelector(".controls-play");
     const next = document.querySelector(".controls-next");
     const prev = document.querySelector(".controls-prev");
-    console.log(play)
     buttonPlay = play;
     play.addEventListener("click", handleAudioPlay);
     next.addEventListener("click", handleAudioNext);
     prev.addEventListener("click", handleAudioPrev);
-
 }
 
 const togglePlaying = () => {
-    console.log("toggle")
+    wavesurfer.playPause()
     const { audio } = currentAudio;
-    playing = !playing;
-    playing ? audio.play() : audio.pause();
-
-    buttonPlay.classList.toggle("playing", playing);
+    // playing = !playing;
+    // playing ? (audio.play() && wavesurfer.play()) :(audio.pause() && wavesurfer.pause());
+    // playing ? wavesurfer.play() : wavesurfer.pause();
+    buttonPlay.classList.toggle("playing", !playing);
 }
 function loadAudioList(item) {
     audiolList.innerHTML += renderItemAudio(item)
@@ -125,7 +125,8 @@ function renderCurrentAudio({ link, track, year, group, duration }) {
                 <img src="./assets/img/svg/fast-forward.png">
                 </button>
               </div>
-
+              <div id="waveform">
+                </div>
               <div class="controls-progress">
                 <div class="progress">
                   <div class="progress-current"></div>
@@ -147,11 +148,22 @@ const setCurrentItem = (id) => {
         current.innerHTML = renderCurrentAudio(audio);
         currentAudio = audio;
         currentAudio.audio.volume = volume;
-        handlePlay();
-        audioUpdateProgress(currentAudio)
-        setTimeout(() => {
-            togglePlaying();
-        }, 10)
+        wavesurfer = WaveSurfer.create({
+            container: '#waveform',
+            waveColor: '#4F4A85',
+            progressColor: '#383351',
+            url: `../../audio/${currentAudio.link}`,
+            barRadius: 7,
+        })
+        wavesurfer.load(`../../audio/${currentAudio.link}`)
+        wavesurfer.on("ready", () => {
+            wavesurfer.setVolume(volume)
+            handlePlay();
+            audioUpdateProgress(currentAudio)
+            setTimeout(() => {
+                togglePlaying();
+            }, 5)})
+
     }
 }
 
@@ -169,18 +181,17 @@ const setProgress = (e) => {
     const duration = currentAudio.audio.duration;
     currentAudio.audio.currentTime = (clickX / width) * duration;
 }
-
-
 function audioUpdateProgress(currentAudio) {
         const progress = document.querySelector(".progress-current");
         const timeline = document.querySelector(".timeline-start");
         const controlsProgress = document.querySelector(".controls-progress");
-        console.log(controlsProgress)
+        wavesurfer.on("audioprocess", () => {
+            timeline.innerHTML = roundingUpTime(wavesurfer.getCurrentTime())
+        });
         controlsProgress.addEventListener("click", setProgress)
         currentAudio.audio.addEventListener("timeupdate", ({ target }) => {
             const { currentTime } = target;
             const width = (currentTime * 100) / currentAudio.duration;
-            timeline.innerHTML = roundingUpTime(currentTime);
             progress.style.width = `${width}%`;
         });
         currentAudio.audio.addEventListener("ended", ({target}) => {
@@ -193,6 +204,7 @@ const changeVolume = ({target}) => {
     volume = target.value;
     if(!currentAudio) return;
     currentAudio.audio.volume = volume;
+    wavesurfer.setVolume(volume)
 }
 
 audiolList.addEventListener("click", changeAudioList)
