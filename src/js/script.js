@@ -1,19 +1,28 @@
 import {data} from "./data.js";
 import {roundingUpTime} from "./utils.js";
-
+localStorage.setItem('AudioData', JSON.stringify(data));
+const savedAudios = JSON.parse(localStorage.getItem('AudioData'));
 const current = document.querySelector(".current"),
     audiolList = document.querySelector(".items"),
     controlsVolume = document.querySelector(".controls-volume");
 let audios = [],
+    Items = [],
     currentAudio = null,
     buttonPlay = null,
     playing = false,
     volume = 0.5,
     wavesurfer;
+
+if (savedAudios) {
+    Items = savedAudios;
+} else {
+    Items = [];
+}
+
 renderAudio()
 
 function renderAudio() {
-    data.forEach((item) => {
+    Items.forEach((item) => {
         const audio = new Audio(`../../audio/${item.link}`);
         audio.addEventListener("loadeddata", () => {
             const newItem = { ...item, duration: audio.duration, audio };
