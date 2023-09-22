@@ -1,4 +1,4 @@
-//Реализация плеера с библиотекой wavesurfer.js
+//Реализация плеера без библиотеки
 import {data} from "./data.js";
 import {roundingUpTime} from "./utils.js";
 localStorage.setItem('AudioData', JSON.stringify(data));
@@ -10,8 +10,7 @@ let audios = [],
     currentAudio = null,
     buttonPlay = null,
     playing = false,
-    volume = 0.5,
-    wavesurfer;
+    volume = 0.5;
 
 if (savedAudios) {
     Items = savedAudios;
@@ -32,12 +31,14 @@ function renderAudio() {
     })
 }
 const handleAudioPlay = () =>  {
-    wavesurfer.playPause();
+    const { audio } = currentAudio;
+    !playing ? audio.play() : audio.pause();
     playing = !playing;
-    buttonPlay.classList.toggle("playing", !playing);
+    console.log(playing)
+    buttonPlay.classList.toggle("playing", playing);
 }
 const pauseCurrentAudio = () => {
-if(!currentAudio) return;
+    if(!currentAudio) return;
     const { audio } = currentAudio;
     audio.pause();
     audio.cerrenttime = 0;
@@ -71,15 +72,17 @@ function handlePlay() {
 }
 
 const togglePlaying = () => {
-    wavesurfer.playPause()
-    buttonPlay.classList.toggle("playing", !playing);
+    const { audio } = currentAudio;
+    playing = !playing;
+    playing ? audio.play() : audio.pause();
+    buttonPlay.classList.toggle("playing", playing);
 }
 function loadAudioList(item) {
     audiolList.innerHTML += renderItemAudio(item)
 }
- function renderItemAudio({ id, link, genre, track, group, duration }) {
-     const [image] = link.split(".");
-     return `<div class="item" data-id="${id}">
+function renderItemAudio({ id, link, genre, track, group, duration }) {
+    const [image] = link.split(".");
+    return `<div class="item" data-id="${id}">
             <div
               class="item-image"
               style="background-image: url(./assets/img/${image}.jpeg)"></div>
@@ -93,7 +96,7 @@ function loadAudioList(item) {
             <img src="./assets/img/svg/play.png" alt="play">
             </button>
           </div>`;
- }
+}
 
 function renderCurrentAudio({ link, track, year, group, duration }) {
     const [image] = link.split(".");
@@ -148,21 +151,11 @@ const setCurrentItem = (id) => {
         current.innerHTML = renderCurrentAudio(audio);
         currentAudio = audio;
         currentAudio.audio.volume = volume;
-        wavesurfer = WaveSurfer.create({
-            container: '#waveform',
-            waveColor: '#4F4A85',
-            progressColor: '#383351',
-            url: `../../audio/${currentAudio.link}`,
-            barRadius: 7,
-        })
-        wavesurfer.load(`../../audio/${currentAudio.link}`)
-        wavesurfer.on("ready", () => {
-            wavesurfer.setVolume(volume)
-            handlePlay();
-            audioUpdateProgress(currentAudio)
-            setTimeout(() => {
-                togglePlaying();
-            }, 5)})
+        handlePlay();
+        audioUpdateProgress(currentAudio)
+        setTimeout(() => {
+            togglePlaying();
+        }, 10)
     }
 }
 
@@ -173,20 +166,37 @@ const changeAudioList = ({target}) => {
         setCurrentItem(id)
     } return
 }
+const setProgress = (e) => {
+    const bar = e.currentTarget
+    const width = bar.clientWidth;
+    const clickX = e.offsetX;
+    const duration = currentAudio.audio.duration;
+    currentAudio.audio.currentTime = (clickX / width) * duration;
+}
+function audioUpdateProgress(currentAudio) {
+    const progress = document.querySelector(".progress-current");
+    const timeline = document.querySelector(".timeline-start");
+    const controlsProgress = document.querySelector(".controls-progress");
+    const controlsVolume = document.querySelector(".controls-volume");
+    controlsProgress.addEventListener("click", setProgress)
+    currentAudio.audio.addEventListener("timeupdate", ({ target }) => {
+        const { currentTime } = target;
+        const width = (currentTime * 100) / currentAudio.duration;
+        timeline.innerHTML = roundingUpTime(currentTime);
+        progress.style.width = `${width}%`;
+    });
+    currentAudio.audio.addEventListener("ended", ({target}) => {
+        target.cerrenttime = 0;
+        progress.style.width = `0%`;
+        handleAudioNext();
+    });
 
-function audioUpdateProgress() {
-        const timeline = document.querySelector(".timeline-start");
-        const controlsVolume = document.querySelector(".controls-volume");
-        wavesurfer.on("audioprocess", () => {
-            timeline.innerHTML = roundingUpTime(wavesurfer.getCurrentTime())
-        });
-        wavesurfer.on("finish", () => {
-            handleAudioNext();
-        });
     controlsVolume.addEventListener("change", changeVolume)
 }
-const changeVolume = () => {
-    wavesurfer.setVolume(volume)
+const changeVolume = ({target}) => {
+    volume = target.value;
+    if(!currentAudio) return;
+    currentAudio.audio.volume = volume;
 }
 
 audiolList.addEventListener("click", changeAudioList)

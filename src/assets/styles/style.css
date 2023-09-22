@@ -31,10 +31,8 @@ h1 {
 }
 .current {
     display: flex;
+    gap: 25px;
 }
-
-
-
 .items {
     display: flex;
     flex-direction: column;
@@ -102,10 +100,6 @@ h1 {
     fill: #ff874a;
     transition: transform 0.5s ease-in-out;
 }
-
-
-
-
 .current-image {
     background-size: cover;
     background-repeat: no-repeat;
@@ -232,7 +226,6 @@ h1 {
     line-height: 14px;
     color: rgba(255, 255, 255, 0.5);
 }
-
 .list-title {
     font-weight: 400;
     font-size: 22px;
